@@ -1,0 +1,33 @@
+--AWK--
+#FORMAT ALL FILE -gb (FASTA FORMAT) IN ONELINER
+for i in *-gb; do awk '{if(NR==1){print $0} else {if($0~/^>/){print "\n"$0} else {print $0}}}' $i |tr -d " " > $i.corrected; done
+
+#format ALL fasta to one liner in place
+for J in *.fa*; do echo $(awk '/^>/ {printf("\n%s\n",$0);next; } { printf("%s",$0);}  END {printf("\n");}' $J) > $J;done;sed -i 's/ /\n/g' *.fa
+ 
+
+#split one multiple fasta file in one file for each entry
+awk  '/^>/ {F = $0".fasta"} {print > F}' meiosis_toolkit.fas
+
+#retive fasta entry by ID
+awk 'FNR==NR{a[$0];next} /^>/{val=$0;sub(/^>/,"",val);flag=val in a?1:0} flag' ids.txt  fasta_file
+
+#retrive ID from multiple fasta keeping them separate by imput file name
+for j in *.fa;  do   grep -e ^\> $j > $j.txt;    done
+
+#retrive multiple fasta entry from multiple id file in multiple fasta file
+for J in *.fa.txt; do for i in *_CDS.fa; do echo "$(awk 'NR==FNR{a[">"$0];next}/^>/{f=0;}($0 in a)||f{print;f=1}' $J $i)" >> $J.fasta; done; done;
+
+#delete all fasta entry matching a pattern from multiple fasta
+for J in *.fa; do echo $(awk '{if (substr($0,1) == ">meiosis") censor=1; else if (substr($0,1,1) == ">") censor=0; if (censor==0) print $0}' $J) > $J; done
+
+#remove fasta entry if term in header
+for J in *.fa; do echo $(awk '{if (substr($0,1) == ">meiosis") censor=1; else if (substr($0,1,1) == ">") censor=0; if (censor==0) print $0}' $J) > $J; done
+
+#remove whiteline
+sed -i '/^[[:space:]]*$/d' target
+
+#rename multiple fasta with first name
+for J in *.fa.txt; do echo "$(awk -F'[ ]'  '{print $1}' $J)" > $J; done
+
+
