@@ -12,11 +12,21 @@ awk  '/^>/ {F = $0".fasta"} {print > F}' meiosis_toolkit.fas
 #retive fasta entry by ID
 awk 'FNR==NR{a[$0];next} /^>/{val=$0;sub(/^>/,"",val);flag=val in a?1:0} flag' ids.txt  fasta_file
 
+#extract fields to file 
+awk 'BEGIN{ FS=OFS="\t" }{N = $12; print ">"N; print "N  21  RMBASE" }' RMBase_\ N21.txt | tr -d \" > References.txt
+
+---------------------------------------------------------------------------------------------------------------------------------
 #retrive ID from multiple fasta keeping them separate by imput file name
 for j in *.fa;  do   grep -e ^\> $j > $j.txt;    done
 
-#retrive multiple fasta entry from multiple id file in multiple fasta file
+#retrive multiple fasta entry from multiple id file in multiple fasta file (N.B. ID list without > (sed -i 's/ //g' *.fa.txt))
 for J in *.fa.txt; do for i in *_CDS.fa; do echo "$(awk 'NR==FNR{a[">"$0];next}/^>/{f=0;}($0 in a)||f{print;f=1}' $J $i)" >> $J.fasta; done; done;
+
+
+for J in *.fa.txt; do for i in *_CDS.fa; do echo "$(awk -F'>' 'NR==FNR{ids[$0]; next} NF>1{f=($2 in ids)} f' $J $i)" >> $J.fasta; done; done;
+----------------------------------------------------------------------------------------------------------------------------------
+
+
 
 #delete all fasta entry matching a pattern from multiple fasta
 for J in *.fa; do echo $(awk '{if (substr($0,1) == ">meiosis") censor=1; else if (substr($0,1,1) == ">") censor=0; if (censor==0) print $0}' $J) > $J; done
@@ -27,7 +37,24 @@ for J in *.fa; do echo $(awk '{if (substr($0,1) == ">meiosis") censor=1; else if
 #remove whiteline
 sed -i '/^[[:space:]]*$/d' target
 
+# Remove everything between ) and : keeping them
+sed -i 's/)[^):]*:/):/g' *
+sed 's/UNO[^):]*DUE/UNODUE/g' 
+
+
 #rename multiple fasta with first name
-for J in *.fa.txt; do echo "$(awk -F'[ ]'  '{print $1}' $J)" > $J; done
+rename 's/oldnamepart/newnamepart/' *
+
+#execute on multiple file and unique output name
+for f in *.fasta; do mview -ruler off -sort cov:pid -out rdb -in fasta "$f" > "${f%.*}_output.fasta"; done
+
+
+#execute command on multiple folders
+for j in *; do (cd $j && codeml); done
+
+#print all line starting with > and from the other remove the last 3 characters
+for j in *; do echo $(awk '{if (/^>/) print; else  {print substr($0, 1, length($0)-3)}}' $j) > $j.txt; done
+
+
 
 
